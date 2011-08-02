@@ -29,16 +29,22 @@ describe Puppet::Util::SUIDManager do
       Puppet::Util::SUIDManager.euid = @user.uid
     end
 
-    it "should not be nil" do
+    # This test really belongs in util_spec.rb, but this doesn't exist yet.
+    it "should not be nil", :unless => Puppet.features.microsoft_windows? do
       Puppet::Util.uid(nonrootuser.name).should_not be_nil
     end
-
   end
 
   describe "#asuser" do
-    it "should set euid/egid when root" do
+    it "should set euid/egid when root", :unless => Puppet.features.microsoft_windows? do
       Process.stubs(:uid).returns(0)
       expects_id_set_and_revert @user.uid, @user.gid
+      Puppet::Util::SUIDManager.asuser @user.uid, @user.gid do end
+    end
+
+    it "should not get or set euid/egid on Windows" do
+      Puppet.features.stubs(:microsoft_windows?).returns true
+      expects_no_id_set
       Puppet::Util::SUIDManager.asuser @user.uid, @user.gid do end
     end
 
@@ -50,10 +56,18 @@ describe Puppet::Util::SUIDManager do
   end
 
   describe "#system" do
-    it "should set euid/egid when root" do
+    it "should set euid/egid when root", :unless => Puppet.features.microsoft_windows? do
       Process.stubs(:uid).returns(0)
       set_exit_status!
       expects_id_set_and_revert @user.uid, @user.gid
+      Kernel.expects(:system).with('blah')
+      Puppet::Util::SUIDManager.system('blah', @user.uid, @user.gid)
+    end
+
+    it "should not get or set euid/egid on Windows" do
+      Puppet.features.stubs(:microsoft_windows?).returns true
+      set_exit_status!
+      expects_no_id_set
       Kernel.expects(:system).with('blah')
       Puppet::Util::SUIDManager.system('blah', @user.uid, @user.gid)
     end
@@ -85,6 +99,44 @@ describe Puppet::Util::SUIDManager do
     end
   end
 
+  describe "#root?" do
+    describe "on POSIX systems", :if => Puppet.features.posix? do
+      it "should be root if uid is 0" do
+        Process.stubs(:uid).returns(0)
+
+        Puppet::Util::SUIDManager.should be_root
+      end
+
+      it "should not be root if uid is not 0" do
+        Process.stubs(:uid).returns(1)
+
+        Puppet::Util::SUIDManager.should_not be_root
+      end
+    end
+
+    describe "on Microsoft Windows", :if => Puppet.features.microsoft_windows? do
+      it "should be root if user is a member of the Administrators group" do
+        Win32::Security.stubs(:elevated_security?).returns(false)
+        Sys::Admin.stubs(:get_login).returns("Administrator")
+
+        Puppet::Util::SUIDManager.should be_root
+      end
+
+      it "should be root if the process is running with elevated privileges" do
+        Win32::Security.stubs(:elevated_security?).returns(true)
+        Sys::Admin.stubs(:get_login).returns("Guest")
+
+        Puppet::Util::SUIDManager.should be_root
+      end
+
+      it "should not be root if user is not a member of the Administrators group" do
+        Sys::Admin.stubs(:get_login).returns("Guest")
+
+        Puppet::Util::SUIDManager.should_not be_root
+      end
+    end
+  end
+
   private
 
   def set_exit_status!
@@ -112,6 +164,8 @@ describe Puppet::Util::SUIDManager do
   end
 
   def nonrootuser
+    return Sys::Admin.get_user("Guest") if Puppet.features.microsoft_windows?
+
     Etc.passwd { |user|
       return user if user.uid != Puppet::Util::SUIDManager.uid and user.uid > 0 and user.uid < 255
     }

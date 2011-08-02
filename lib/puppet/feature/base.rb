@@ -3,6 +3,31 @@
 
 require 'puppet/util/feature'
 
+# Order is important as some features depend on others
+
+# We have a syslog implementation
+Puppet.features.add(:syslog, :libs => ["syslog"])
+
+# We can use POSIX user functions
+Puppet.features.add(:posix) do
+  require 'etc'
+  Etc.getpwuid(0) != nil && Puppet.features.syslog?
+end
+
+# We can use Microsoft Windows functions
+Puppet.features.add(:microsoft_windows) do
+  begin
+    require 'sys/admin'
+    require 'win32/process'
+    require 'win32/dir'
+    require 'win32/service'
+  rescue LoadError => err
+    warn "Cannot run on Microsoft Windows without the sys-admin, win32-process, win32-dir & win32-service gems: #{err}" unless Puppet.features.posix?
+  end
+end
+
+raise Puppet::Error,"Cannot determine basic system flavour" unless Puppet.features.posix? or Puppet.features.microsoft_windows?
+
 # Add the simple features, all in one file.
 
 # We've got LDAP available.
@@ -32,29 +57,6 @@ Puppet.features.add(:rrd, :libs => ["RRD"])
 
 # We have OpenSSL
 Puppet.features.add(:openssl, :libs => ["openssl"])
-
-# We have a syslog implementation
-Puppet.features.add(:syslog, :libs => ["syslog"])
-
-# We can use POSIX user functions
-Puppet.features.add(:posix) do
-  require 'etc'
-  Etc.getpwuid(0) != nil && Puppet.features.syslog?
-end
-
-# We can use Microsoft Windows functions
-Puppet.features.add(:microsoft_windows) do
-  begin
-    require 'sys/admin'
-    require 'win32/process'
-    require 'win32/dir'
-    require 'win32/service'
-  rescue LoadError => err
-    warn "Cannot run on Microsoft Windows without the sys-admin, win32-process, win32-dir & win32-service gems: #{err}" unless Puppet.features.posix?
-  end
-end
-
-raise Puppet::Error,"Cannot determine basic system flavour" unless Puppet.features.posix? or Puppet.features.microsoft_windows?
 
 # We have CouchDB
 Puppet.features.add(:couchdb, :libs => ["couchrest"])

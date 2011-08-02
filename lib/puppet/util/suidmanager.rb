@@ -43,7 +43,12 @@ module Puppet::Util::SUIDManager
   end
 
   def self.root?
-    Process.uid == 0
+    return Process.uid == 0 unless Puppet.features.microsoft_windows?
+
+    require 'sys/admin'
+    require 'win32/security'
+
+    Win32::Security.elevated_security? or Sys::Admin.get_group("Administrators").members.index(Sys::Admin.get_login) != nil
   end
 
   # Runs block setting uid and gid if provided then restoring original ids
