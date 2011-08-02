@@ -109,4 +109,9 @@ only directly calls the command with the arguments given."
     # if we're not fully qualified, require a path
     self.fail "'#{command}' is not qualified and no path was specified. Please qualify the command or specify a path." if File.expand_path(exe) != exe and resource[:path].nil?
   end
+
+  def validateuser(user)
+    # Most validation is handled by the SUIDManager class.
+    self.fail "Only root can execute commands as other users." unless Puppet.features.root?
+  end
 end

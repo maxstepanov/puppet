@@ -162,9 +162,8 @@ module Puppet
         create this user, the exec will automatically require the user,
         as long as it is specified by name."
 
-      # Most validation is handled by the SUIDManager class.
       validate do |user|
-        self.fail "Only root can execute commands as other users" unless Puppet.features.root?
+        provider.validateuser(user)
       end
     end
 

@@ -40,6 +40,21 @@ describe provider_class do
         end
       end
 
+      describe "#validateuser" do
+        it "should pass when running as root" do
+          Puppet.features.stubs(:root?).returns(true)
+          @provider.validateuser("foo")
+        end
+
+        it "should fail when not running as root" do
+          Puppet.features.stubs(:root?).returns(false)
+          lambda { @provider.validateuser("foo") }.should raise_error(
+            Puppet::Error,
+            "Only root can execute commands as other users."
+          )
+        end
+      end
+
       describe "#run" do
         it "should fail if no path is specified and command does not exist" do
           lambda { @provider.run("foo") }.should raise_error(ArgumentError, "Could not find command 'foo'")
