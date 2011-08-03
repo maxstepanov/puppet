@@ -720,6 +720,23 @@ describe Puppet::Util::Settings do
       @settings.to_catalog
     end
 
+    describe "on Microsoft Windows" do
+      before :each do
+        Puppet.features.stubs(:root?).returns true
+        Puppet.features.stubs(:microsoft_windows?).returns true
+
+        @settings.setdefaults :foo, :mkusers => [true, "e"], :user => ["suser", "doc"], :group => ["sgroup", "doc"]
+        @settings.setdefaults :other, :otherdir => {:default => "/otherdir", :desc => "a", :owner => "service", :group => "service"}
+
+        @catalog = @settings.to_catalog
+      end
+
+      it "it should not add users and groups to the catalog" do
+        @catalog.resource(:user, "suser").should be_nil
+        @catalog.resource(:group, "sgroup").should be_nil
+      end
+    end
+
     describe "when adding users and groups to the catalog" do
       before do
         Puppet.features.stubs(:root?).returns true
@@ -729,7 +746,7 @@ describe Puppet::Util::Settings do
         @catalog = @settings.to_catalog
       end
 
-      it "should add each specified user and group to the catalog if :mkusers is a valid setting, is enabled, and we're running as root" do
+      it "should add each specified user and group to the catalog if :mkusers is a valid setting, is enabled, and we're running as root", :unless => Puppet.features.microsoft_windows? do
         @catalog.resource(:user, "suser").should be_instance_of(Puppet::Resource)
         @catalog.resource(:group, "sgroup").should be_instance_of(Puppet::Resource)
       end
@@ -774,12 +791,12 @@ describe Puppet::Util::Settings do
         lambda { @settings.to_catalog }.should_not raise_error
       end
 
-      it "should set :ensure to :present on each created user and group" do
+      it "should set :ensure to :present on each created user and group", :unless => Puppet.features.microsoft_windows? do
         @catalog.resource(:user, "suser")[:ensure].should == :present
         @catalog.resource(:group, "sgroup")[:ensure].should == :present
       end
 
-      it "should set each created user's :gid to the service group" do
+      it "should set each created user's :gid to the service group", :unless => Puppet.features.microsoft_windows? do
         @settings.to_catalog.resource(:user, "suser")[:gid].should == "sgroup"
       end
 
