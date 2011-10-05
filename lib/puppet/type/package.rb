@@ -222,6 +222,12 @@ module Puppet
       desc "Where to find the actual package.  This must be a local file
         (or on a network file system) or a URL that your specific
         packaging type understands; Puppet will not retrieve files for you."
+
+      defaultto ''
+
+      validate do |source|
+        provider.validate_source(source)
+      end
     end
 
     newparam(:instance) do
@@ -298,10 +304,6 @@ module Puppet
     newparam(:install_options, :required_features => :install_options) do
       desc "A hash of options to be handled by the provider when
         installing a package."
-    end
-
-    validate do
-      provider.validate_source(self[:source])
     end
 
     autorequire(:file) do

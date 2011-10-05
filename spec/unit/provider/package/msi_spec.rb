@@ -70,7 +70,7 @@ describe 'Puppet::Provider::Package::Msi' do
         resource = Puppet::Type.type(:package).new(
           :name => 'mysql-5.1.58-winx64'
         )
-      end.to raise_error(Puppet::Error, /The source parameter is required when using the MSI provider/)
+      end.to raise_error(Puppet::Error, /The source parameter cannot be empty when using the MSI provider/)
     end
 
     it 'should fail if the source parameter is empty' do
@@ -116,7 +116,7 @@ describe 'Puppet::Provider::Package::Msi' do
         resource = Puppet::Type.type(:package).new(
           :name => 'mysql-5.1.58-winx64'
         )
-      end.to raise_error(Puppet::Error, /The source parameter is required when using the MSI provider/)
+      end.to raise_error(Puppet::Error, /The source parameter cannot be empty when using the MSI provider/)
     end
 
     it 'should fail if the source parameter is empty' do
@@ -166,5 +166,14 @@ describe 'Puppet::Provider::Package::Msi' do
     )
 
     resource.provider.query.should be_nil
+  end
+
+  it "should return the package name as the 'source' property" do
+    resource = Puppet::Type.type(:package).new(
+      :name   => 'mysql-5.1.58-winx64',
+      :source => 'E:\mysql-5.1.58-winx64.msi'
+    )
+
+    resource[:source].should == 'E:\mysql-5.1.58-winx64.msi'
   end
 end
