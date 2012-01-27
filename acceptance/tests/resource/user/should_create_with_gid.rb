@@ -4,21 +4,23 @@ user = "pl#{rand(999999).to_i}"
 group = "gp#{rand(999999).to_i}"
 
 agents.each do |host|
+    next if host['platform'].include? 'windows'
+
     step "user should not exist"
-    on host, "if getent passwd #{user}; then userdel #{user}; fi"
+    on(host, puppet_resource('user', user, 'ensure=absent'))
 
     step "group should exist"
-    on host, "getent group #{group} || groupadd #{group}"
+    on(host, puppet_resource('group', group, 'ensure=present'))
 
     step "create user with group"
     on(host, puppet_resource('user', user, 'ensure=present', "gid=#{group}"))
 
     step "verify the group exists and find the gid"
-    on(host, "getent group #{group}") do
+    on(host, puppet_resource('group', group)) do
         gid = stdout.split(':')[2]
 
         step "verify that the user has that as their gid"
-        on(host, "getent passwd #{user}") do
+        on(host, puppet_resource('user', user)) do
             got = stdout.split(':')[3]
             fail_test "wanted gid #{gid} but found #{got}" unless gid == got
         end

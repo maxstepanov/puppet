@@ -5,6 +5,8 @@ group1 = "#{user}old"
 group2 = "#{user}new"
 
 agents.each do |host|
+    next if host['platform'].include? 'windows'
+
     step "ensure that the groups both exist"
     on(host, puppet_resource('group', group1, 'ensure=present'))
     on(host, puppet_resource('group', group2, 'ensure=present'))
@@ -13,9 +15,9 @@ agents.each do |host|
     on(host, puppet_resource('user', user, 'ensure=present', "gid=#{group1}"))
 
     step "verify that the user has the correct gid"
-    on(host, "getent group #{group1}") do
+    on(host, puppet_resource('group', group1)) do
         gid = stdout.split(':')[2]
-        on(host, "getent passwd #{user}") do
+        on(host, puppet_resource('user', user)) do
             got = stdout.split(':')[3]
             fail_test "didn't have the expected old GID, but #{got}" unless got == gid
         end
@@ -26,9 +28,9 @@ agents.each do |host|
 
 
     step "verify that the user has the updated gid"
-    on(host, "getent group #{group2}") do
+    on(host, puppet_resource('group', group2)) do
         gid = stdout.split(':')[2]
-        on(host, "getent passwd #{user}") do
+        on(host, puppet_resource('user', user)) do
             got = stdout.split(':')[3]
             fail_test "didn't have the expected old GID, but #{got}" unless got == gid
         end
