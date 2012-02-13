@@ -26,6 +26,7 @@ class Puppet::FileServing::Base
   end
 
   def initialize(path, options = {})
+    puts "SERVING: #{path}"
     self.path = path
     @links = :manage
 
