@@ -15,9 +15,14 @@ module Puppet
   setdefaults(:main,
     :trace => [false, "Whether to print stack traces on some errors"],
     :autoflush => {
-      :default => false,
+      :default => true,
       :desc    => "Whether log files should always flush to disk.",
-      :hook    => proc { |value| Log.autoflush = value }
+      :hook    =>
+        proc do |value|
+          if value == 'false'
+            Puppet.warning "Setting :autoflush to 'false' is deprecated and will be ignored"
+          end
+        end
     },
     :syslogfacility => ["daemon", "What syslog facility to use when logging to
       syslog.  Syslog has a fixed list of valid facilities, and you must

@@ -54,12 +54,6 @@ Puppet::Util::Log.newdesttype :file do
     end
   end
 
-  def flush
-    @file.flush if defined?(@file)
-  end
-
-  attr_accessor :autoflush
-
   def initialize(path)
     @name = path
     # first make sure the directory exists
@@ -72,16 +66,13 @@ Puppet::Util::Log.newdesttype :file do
 
     # create the log file, if it doesn't already exist
     file = File.open(path, File::WRONLY|File::CREAT|File::APPEND)
+    file.sync = true
 
     @file = file
-
-    @autoflush = Puppet[:autoflush]
   end
 
   def handle(msg)
     @file.puts("#{msg.time} #{msg.source} (#{msg.level}): #{msg}")
-
-    @file.flush if @autoflush
   end
 end
 

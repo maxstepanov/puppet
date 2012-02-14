@@ -29,10 +29,6 @@ describe Puppet::Util::Log.desttypes[:file] do
     @class = Puppet::Util::Log.desttypes[:file]
   end
 
-  it "should default to autoflush false" do
-    @class.new('/tmp/log').autoflush.should == false
-  end
-
   describe "when matching" do
     shared_examples_for "file destination" do
       it "should match an absolute path" do
